@@ -16,7 +16,7 @@ autoRoom.addEventListener("click", async () => {
         return;
     }
 
-    const res = await fetch("https://your-render-backend-url/create-room", {
+    const res = await fetch("https://sync-flix.onrender.com/create-room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: name })
