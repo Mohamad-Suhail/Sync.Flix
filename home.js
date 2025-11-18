@@ -80,3 +80,4 @@ loginBtn.addEventListener("click", async () => {
     window.location.href =
         `sync.html?name=${encodeURIComponent(name)}&room=${join}&role=participant`;
 });
+//suhail learning
