@@ -6,20 +6,25 @@ const joinRoom = document.getElementById("join-room");
 
 let generatedRoom = "";
 
-// ========================
-// AUTO GENERATE ROOM (HOST)
-// ========================
+// =====================================
+// AUTO GENERATE ROOM (HOST CREATES ROOM)
+// =====================================
 autoRoom.addEventListener("click", async () => {
     const name = username.value.trim();
+
     if (!name) {
         alert("Please enter your name first!");
         return;
     }
 
+    // Generate 6-digit alphanumeric room code
+    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    // Send to backend to REGISTER THE ROOM
     const res = await fetch("https://sync-flix.onrender.com/create-room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: name })
+        body: JSON.stringify({ room: roomCode })
     });
 
     const data = await res.json();
@@ -29,19 +34,20 @@ autoRoom.addEventListener("click", async () => {
         return;
     }
 
-    generatedRoom = data.room;
+    generatedRoom = roomCode;
     manualRoom.value = generatedRoom;
+
     alert(`Room Created: ${generatedRoom}`);
 });
 
 
-// ========================
-// ENTER ROOM
-// ========================
+// ================================
+// LOGIN — HOST or PARTICIPANT
+// ================================
 loginBtn.addEventListener("click", async () => {
     const name = username.value.trim();
-    const manual = manualRoom.value.trim();
-    const join = joinRoom.value.trim();
+    const manual = manualRoom.value.trim();   // Host code
+    const join = joinRoom.value.trim();       // Participant joins
 
     if (!name) {
         alert("Please enter your name!");
@@ -53,20 +59,26 @@ loginBtn.addEventListener("click", async () => {
         return;
     }
 
-    // HOST LOGIN
+    // ======================
+    // Case 1 → HOST LOGIN
+    // ======================
     if (manual) {
         window.location.href =
             `sync.html?name=${encodeURIComponent(name)}&room=${manual}&role=host`;
+
         return;
     }
 
-    // PARTICIPANT LOGIN
+    // ======================
+    // Case 2 → PARTICIPANT
+    // Validate room
+    // ======================
     const res = await fetch("https://sync-flix.onrender.com/join-room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
             username: name,
-            roomCode: join
+            room: join
         })
     });
 
