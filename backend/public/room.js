@@ -1,22 +1,11 @@
-// ====== Firebase Config ======
-// TODO: Replace with your own Firebase config
-const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "SENDER_ID",
-    appId: "APP_ID"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-// ====== Get URL Params ======
+// =======================
+// GET URL PARAMS
+// =======================
 function getQueryParam(param) {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get(param);
 }
+
 const username = getQueryParam("name") || "Guest";
 const roomCode = getQueryParam("room") || "XXXXXX";
 const service = getQueryParam("service") || "youtube";
@@ -24,56 +13,100 @@ const service = getQueryParam("service") || "youtube";
 document.getElementById("user-name").textContent = username;
 document.getElementById("room-code-top").textContent = `Room: ${roomCode}`;
 
-// ====== Side Menu Toggle ======
-const menuToggle = document.getElementById("menu-toggle");
-const sideMenu = document.getElementById("side-menu");
+// =======================
+// MEDIA LOADING
+// =======================
+const mediaContainer = document.getElementById("media-container");
+let youtubePlayer = null;
+let audioPlayer = null;
 
-menuToggle.addEventListener("click", () => {
+// Load media based on service
+function loadSelectedService() {
+
+    if (service === "youtube") {
+        mediaContainer.innerHTML = `
+            <iframe id="yt-player"
+                width="100%" height="350"
+                src="https://www.youtube.com/embed/?controls=1"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;"
+                allowfullscreen>
+            </iframe>
+        `;
+
+        youtubePlayer = document.getElementById("yt-player");
+    }
+
+    else if (service === "youtube-music") {
+        mediaContainer.innerHTML = `
+            <iframe 
+                width="100%" height="350"
+                src="https://music.youtube.com/"
+                frameborder="0">
+            </iframe>
+        `;
+    }
+
+    else if (service === "vlc") {
+        mediaContainer.innerHTML = `
+            <input type="file" id="fileInput" accept="video/*,audio/*">
+            <video id="localVideo" width="100%" height="350" controls></video>
+        `;
+
+        const fileInput = document.getElementById("fileInput");
+        const localVideo = document.getElementById("localVideo");
+
+        fileInput.addEventListener("change", () => {
+            const file = fileInput.files[0];
+            if (file) {
+                localVideo.src = URL.createObjectURL(file);
+            }
+        });
+    }
+}
+
+loadSelectedService();
+
+// =======================
+// CONTROL BUTTONS
+// =======================
+document.getElementById("play").addEventListener("click", () => {
+    if (service === "vlc") {
+        document.getElementById("localVideo")?.play();
+    }
+});
+
+document.getElementById("pause").addEventListener("click", () => {
+    if (service === "vlc") {
+        document.getElementById("localVideo")?.pause();
+    }
+});
+
+
+// =======================
+// SIDE MENU
+// =======================
+const sideMenu = document.getElementById("side-menu");
+document.getElementById("menu-toggle").addEventListener("click", () => {
     sideMenu.classList.toggle("open");
 });
 
-// Close menu on clicking outside
-document.addEventListener("click", (e) => {
-    if (!sideMenu.contains(e.target) && !menuToggle.contains(e.target)) {
+document.addEventListener("click", e => {
+    if (!sideMenu.contains(e.target) && !document.getElementById("menu-toggle").contains(e.target)) {
         sideMenu.classList.remove("open");
     }
 });
 
-// ====== Dark/Light Toggle ======
-document.getElementById("light-btn").addEventListener("click", () => {
+// =======================
+// DARK MODE
+// =======================
+document.getElementById("light-btn").onclick = () =>
     document.body.classList.remove("dark");
-});
-document.getElementById("dark-btn").addEventListener("click", () => {
+
+document.getElementById("dark-btn").onclick = () =>
     document.body.classList.add("dark");
-});
 
-// ====== Chat System ======
-const chatInput = document.getElementById("chat-text");
-const sendBtn = document.getElementById("send-btn");
-const chatMessages = document.getElementById("chat-messages");
 
-function sendMessage(msg) {
-    if (!msg) return;
-    const newMsgRef = db.ref(`rooms/${roomCode}/messages`).push();
-    newMsgRef.set({
-        user: username,
-        message: msg,
-        timestamp: Date.now()
-    });
-    chatInput.value = "";
-}
-
-sendBtn.addEventListener("click", () => sendMessage(chatInput.value));
-chatInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") sendMessage(chatInput.value);
-});
-
-// Listen for new messages
-db.ref(`rooms/${roomCode}/messages`).on("child_added", snapshot => {
-    const msg = snapshot.val();
-    const p = document.createElement("p");
-    const time = new Date(msg.timestamp).toLocaleTimeString();
-    p.innerHTML = `<strong>${msg.user}</strong>: ${msg.message} <span class="timestamp">${time}</span>`;
-    chatMessages.appendChild(p);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-});
+// =======================
+// CHAT SYSTEM (SKIPPED UNTIL BACKEND DECISION)
+// =======================
