@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SyncFlix - Room</title>
+<link rel="stylesheet" href="room.css">
+</head>
+<body>
+<div class="room-container">
+
+    <!-- Left Side Panel (Menu) -->
+    <div id="side-menu" class="side-menu">
+        <div class="menu-header">
+            <h2 id="user-name">User</h2>
+        </div>
+        <div class="appearance">
+            <label>Appearance</label>
+            <div class="toggle-buttons">
+                <button id="light-btn">Light</button>
+                <button id="dark-btn">Dark</button>
+            </div>
+        </div>
+        <div class="menu-footer">SyncFlix v1.0</div>
+    </div>
+
+    <!-- Top Bar -->
+    <div class="top-bar">
+        <button id="menu-toggle">&#9776;</button>
+        <h1>SyncFlix</h1>
+        <span id="room-code-top" class="room-code"></span>
+        <button id="participants-btn">Participants</button>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Left Video/Audio Panel -->
+        <div class="media-panel" id="media-panel">
+            <div id="media-container">
+                <!-- Video/Audio will be loaded here -->
+                <p>Select a video/audio to play</p>
+            </div>
+            <div class="media-controls">
+                <button id="play">Play</button>
+                <button id="pause">Pause</button>
+                <button id="next">Next</button>
+                <button id="prev">Prev</button>
+            </div>
+        </div>
+
+        <!-- Right Chat Panel -->
+        <div class="chat-panel">
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="emoji-bar">
+                <button class="emoji-btn">❤️</button>
+                <button class="emoji-btn">😂</button>
+                <button class="emoji-btn">🔥</button>
+                <button class="emoji-btn">😢</button>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="chat-text" placeholder="Type a message...">
+                <button id="send-btn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Search Bar -->
+    <div class="search-bar">
+        <input type="text" id="search-input" placeholder="Search YouTube or Music">
+        <button id="search-btn">Search</button>
+    </div>
+
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="room.js"></script>
+</body>
+</html>

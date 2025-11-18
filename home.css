@@ -1,0 +1,143 @@
+/* Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body, html {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    background: #0b0c10;
+    color: #fff;
+}
+
+/* Cinematic Background */
+.background {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: url('https://images.unsplash.com/photo-1510915228340-29c85a43dcfe?fit=crop&w=1950&q=80') no-repeat center center/cover;
+    z-index: -2;
+    filter: brightness(0.4);
+}
+
+.overlay {
+    position: fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.6), rgba(0,0,0,0.9));
+    z-index: -1;
+}
+
+/* Container */
+.container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    text-align: center;
+    padding: 20px;
+}
+
+/* Title Animation */
+.title {
+    font-size: 5rem;
+    font-weight: 900;
+    letter-spacing: 6px;
+    color: #E50914;
+    margin-bottom: 10px;
+    animation: titlePop 1.2s ease-in-out;
+}
+
+@keyframes titlePop {
+    0% {transform: scale(0); opacity: 0;}
+    50% {transform: scale(1.2); opacity: 1;}
+    100% {transform: scale(1); opacity: 1;}
+}
+
+.subtitle {
+    font-size: 1.5rem;
+    margin-bottom: 50px;
+    color: rgba(255,255,255,0.8);
+    animation: fadeIn 2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    0% {opacity:0; transform: translateY(-20px);}
+    100% {opacity:1; transform: translateY(0);}
+}
+
+/* Glassmorphism Login Box */
+.login-box {
+    background: rgba(255,255,255,0.05);
+    border-radius: 15px;
+    padding: 30px 40px;
+    min-width: 320px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.7);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    animation: fadeIn 2s ease forwards;
+}
+
+/* Inputs and Buttons */
+.login-box input {
+    padding: 12px 15px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(255,255,255,0.1);
+    color: #fff;
+    font-size: 1rem;
+}
+
+.login-box input::placeholder {
+    color: rgba(255,255,255,0.6);
+}
+
+.login-box button {
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+#auto-room {
+    background: #1db954;
+    color: #fff;
+}
+
+#auto-room:hover {
+    background: #1ed760;
+}
+
+.login-btn {
+    background: #E50914;
+    color: #fff;
+}
+
+.login-btn:hover {
+    background: #f40612;
+}
+
+/* Room Section Flex */
+.room-section, .join-room {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* Footer */
+.footer {
+    margin-top: 40px;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.4);
+}

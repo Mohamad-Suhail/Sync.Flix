@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SyncFlix - Home</title>
+    <link rel="stylesheet" href="home.css">
+</head>
+<body>
+    <div class="background"></div>
+    <div class="overlay"></div>
+
+    <div class="container">
+        <!-- App Title -->
+        <h1 class="title">SyncFlix</h1>
+
+        <!-- Animated Subtitle -->
+        <p class="subtitle">Watch & Listen Together, Anywhere</p>
+
+        <!-- Login Box -->
+        <div class="login-box glass">
+            <input type="text" id="username" placeholder="Enter your name">
+
+            <div class="room-section">
+                <button id="auto-room">Auto Generate Room</button>
+                <input type="text" id="manual-room" placeholder="Or Enter Room Code">
+            </div>
+            <p id="status"></p>
+            <div class="join-room">
+                <input type="text" id="join-room" placeholder="Join Room Code">
+            </div>
+
+            <button id="login-btn" class="login-btn">Enter Room</button>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">SyncFlix &copy; 2025 | Version 1.0</div>
+    </div>
+
+    <script src="home.js"></script>
+</body>
+</html>
