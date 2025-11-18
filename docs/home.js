@@ -53,15 +53,15 @@ loginBtn.addEventListener("click", async () => {
         return;
     }
 
-    // If manual room present → HOST login
+    // HOST LOGIN
     if (manual) {
         window.location.href =
             `sync.html?name=${encodeURIComponent(name)}&room=${manual}&role=host`;
         return;
     }
 
-    // If join-room present → PARTICIPANT
-    const res = await fetch("https://your-render-backend-url/join-room", {
+    // PARTICIPANT LOGIN
+    const res = await fetch("https://sync-flix.onrender.com/join-room", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -80,4 +80,3 @@ loginBtn.addEventListener("click", async () => {
     window.location.href =
         `sync.html?name=${encodeURIComponent(name)}&room=${join}&role=participant`;
 });
-//suhail learning
