@@ -2,89 +2,71 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const path = require("path");
 
-// ---------------------------
-// EXPRESS + SOCKET.IO SETUP
-// ---------------------------
+// Express setup
 const app = express();
 app.use(express.json());
-app.use(cors({
-    origin: "*",
-    methods: ["GET", "POST"]
-}));
+app.use(cors());
 
+// Serve FRONTEND
+app.use(express.static(path.join(__dirname, "public")));
+
+// Create HTTP server
 const server = http.createServer(app);
 
+// Socket.io
 const io = new Server(server, {
     cors: { origin: "*" }
 });
 
-// --------------------------------
-// TEMPORARY MEMORY ROOM DATABASE
-// --------------------------------
-let rooms = {}; // { roomCode: { created: timestamp } }
+// -------------------------------
+// ROOM MEMORY
+// -------------------------------
+let rooms = {};
 
 
-// --------------------------------------------------
-// API 1 — CREATE ROOM
-// --------------------------------------------------
+// API: Create Room
 app.post("/create-room", (req, res) => {
     const { room } = req.body;
-
-    if (!room) {
-        return res.status(400).json({ error: "Room code required" });
-    }
+    if (!room) return res.status(400).json({ error: "Room code required" });
 
     rooms[room] = { created: Date.now() };
-
     console.log("Room created:", room);
 
-    return res.json({ success: true, room });
+    res.json({ success: true, room });
 });
 
 
-// --------------------------------------------------
-// API 2 — VALIDATE ROOM
-// --------------------------------------------------
+// API: Validate Room
 app.get("/validate-room/:code", (req, res) => {
     const code = req.params.code;
-
-    if (rooms[code]) {
-        return res.json({ valid: true });
-    } else {
-        return res.json({ valid: false });
-    }
+    res.json({ valid: !!rooms[code] });
 });
 
 
-// --------------------------------------------------
-// API 3 — LOG USER
-// --------------------------------------------------
+// API: Log User Entry
 app.post("/log", (req, res) => {
     console.log("User Log:", req.body);
-    return res.json({ success: true });
+    res.json({ success: true });
 });
 
 
-// --------------------------------------------------
-// SOCKET.IO — SYNC ACTIONS
-// --------------------------------------------------
+// SOCKET.IO — SYNC SYSTEM
 io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
     socket.on("join-room", (room) => {
         socket.join(room);
-        console.log(`User ${socket.id} joined room ${room}`);
+        console.log(`${socket.id} joined room ${room}`);
     });
 
     socket.on("send-action", (data) => {
         io.to(data.room).emit("receive-action", data);
-        console.log("Action sent:", data);
     });
 
     socket.on("chat-message", (data) => {
         io.to(data.room).emit("chat-message", data);
-        console.log("Chat:", data);
     });
 
     socket.on("disconnect", () => {
@@ -93,10 +75,11 @@ io.on("connection", (socket) => {
 });
 
 
-// --------------------------------------------------
-// START SERVER
-// --------------------------------------------------
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log("Backend running on port", PORT);
+// SPA fallback (important)
+app.get("*", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/index.html"));
 });
+
+// Start server
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log("Server running on port", PORT));
