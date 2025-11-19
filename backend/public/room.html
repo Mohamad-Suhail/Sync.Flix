@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>SyncFlix - Room</title>
 <link rel="stylesheet" href="room.css">
 </head>
@@ -10,67 +10,80 @@
 
 <div class="room-container">
 
-    <!-- Side Menu -->
-    <div id="side-menu" class="side-menu">
-        <h2 id="user-name"></h2>
+  <!-- Side Menu -->
+  <aside id="side-menu" class="side-menu" aria-hidden="true">
+    <div class="menu-top">
+      <div class="user-row">
+        <div class="user-avatar">SF</div>
+        <h2 id="user-name">User</h2>
+      </div>
 
-        <!-- Appearance Switch -->
-        <div class="appearance-section">
-            <label>Appearance</label>
-            <div id="appearance-toggle" class="toggle-switch">
-                <div class="thumb"></div>
-            </div>
+      <!-- Appearance (placed under name with spacing) -->
+      <div class="appearance-section">
+        <label class="appearance-label">Appearance</label>
+        <div id="appearance-toggle" class="toggle-switch" role="switch" aria-checked="false">
+          <div class="thumb"></div>
         </div>
+      </div>
     </div>
 
-    <!-- Top Bar -->
-    <div class="top-bar">
-        <button id="menu-toggle">&#9776;</button>
-        <h1>SyncFlix</h1>
-        <span id="room-code-top"></span>
-        <button id="participants-btn">Participants</button>
+    <div class="menu-bottom">
+      <div class="menu-version">SyncFlix v1.0</div>
+    </div>
+  </aside>
+
+  <!-- Top Bar -->
+  <header class="top-bar">
+    <button id="menu-toggle" class="menu-btn" aria-label="Open menu">☰</button>
+    <div class="brand">
+      <h1 class="logo">SyncFlix</h1>
     </div>
 
-    <!-- Main Content -->
-    <div class="main-content">
-
-        <!-- Media Panel -->
-        <div class="media-panel">
-            <div id="media-container"></div>
-
-            <div class="media-controls">
-                <button id="prev">Prev</button>
-                <button id="play">Play</button>
-                <button id="pause">Pause</button>
-                <button id="next">Next</button>
-            </div>
-        </div>
-
-        <!-- Chat Panel -->
-        <div class="chat-panel">
-            <div id="chat-messages" class="chat-messages"></div>
-
-            <div class="emoji-bar">
-                <button>❤️</button>
-                <button>😂</button>
-                <button>🔥</button>
-                <button>😢</button>
-            </div>
-
-            <div class="chat-input">
-                <input id="chat-text" type="text" placeholder="Type a message...">
-                <button id="send-btn">Send</button>
-            </div>
-        </div>
-
+    <div class="top-right">
+      <span id="room-code-top" class="room-code"></span>
+      <button id="participants-btn" class="icon-btn participants-btn" title="Participants">👥</button>
     </div>
+  </header>
 
-    <!-- Search Bar -->
-    <div class="search-bar">
-        <input id="search-input" placeholder="Search YouTube">
-        <button id="search-btn">Search</button>
-    </div>
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Media Panel -->
+    <section class="media-panel">
+      <div id="media-container" class="media-container">
+        <p class="placeholder">Select a video/audio to play</p>
+      </div>
 
+      <div class="media-controls">
+        <button class="ctrl-btn" id="prev" title="Previous">⏮</button>
+        <button class="ctrl-btn primary" id="play" title="Play">▶</button>
+        <button class="ctrl-btn" id="pause" title="Pause">⏸</button>
+        <button class="ctrl-btn" id="next" title="Next">⏭</button>
+      </div>
+    </section>
+
+    <!-- Chat Panel -->
+    <aside class="chat-panel" id="chat-panel">
+      <div id="chat-messages" class="chat-messages" aria-live="polite"></div>
+
+      <div class="emoji-bar" aria-hidden="false">
+        <button class="emoji-btn">❤️</button>
+        <button class="emoji-btn">😂</button>
+        <button class="emoji-btn">🔥</button>
+        <button class="emoji-btn">😢</button>
+      </div>
+
+      <div class="chat-input">
+        <input id="chat-text" type="text" placeholder="Type a message..." autocomplete="off">
+        <button id="send-btn" class="send-btn" title="Send">➤</button>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Search Bar (sticky bottom) -->
+  <div class="search-bar" id="search-bar">
+    <input id="search-input" placeholder="Search YouTube..." />
+    <button id="search-btn" class="search-btn">🔍</button>
+  </div>
 </div>
 
 <script src="room.js"></script>
