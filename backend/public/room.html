@@ -12,17 +12,15 @@
 
     <!-- Side Menu -->
     <div id="side-menu" class="side-menu">
-        <div class="menu-header">
-            <h2 id="user-name"></h2>
+        <h2 id="user-name"></h2>
 
-            <!-- Appearance Switch -->
-            <label class="appearance-title">Appearance</label>
+        <!-- Appearance Switch -->
+        <div class="appearance-section">
+            <label>Appearance</label>
             <div id="appearance-toggle" class="toggle-switch">
                 <div class="thumb"></div>
             </div>
         </div>
-
-        <div class="menu-footer">SyncFlix v1.0</div>
     </div>
 
     <!-- Top Bar -->
@@ -41,10 +39,10 @@
             <div id="media-container"></div>
 
             <div class="media-controls">
-                <button class="media-btn" id="prev">⏮</button>
-                <button class="media-btn" id="play">▶</button>
-                <button class="media-btn" id="pause">⏸</button>
-                <button class="media-btn" id="next">⏭</button>
+                <button id="prev">Prev</button>
+                <button id="play">Play</button>
+                <button id="pause">Pause</button>
+                <button id="next">Next</button>
             </div>
         </div>
 
@@ -53,20 +51,21 @@
             <div id="chat-messages" class="chat-messages"></div>
 
             <div class="emoji-bar">
-                <button class="emoji-btn">❤️</button>
-                <button class="emoji-btn">😂</button>
-                <button class="emoji-btn">🔥</button>
-                <button class="emoji-btn">😢</button>
+                <button>❤️</button>
+                <button>😂</button>
+                <button>🔥</button>
+                <button>😢</button>
             </div>
 
             <div class="chat-input">
                 <input id="chat-text" type="text" placeholder="Type a message...">
-                <button id="send-btn" class="send-btn">➤</button>
+                <button id="send-btn">Send</button>
             </div>
         </div>
 
     </div>
 
+    <!-- Search Bar -->
     <div class="search-bar">
         <input id="search-input" placeholder="Search YouTube">
         <button id="search-btn">Search</button>
