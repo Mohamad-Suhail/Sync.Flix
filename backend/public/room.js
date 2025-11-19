@@ -12,7 +12,7 @@ document.getElementById("room-code-top").textContent = `Room: ${roomCode}`;
 // ================= YouTube Data API KEY =================
 // Get an API key: https://console.developers.google.com/
 // Enable "YouTube Data API v3" for your project
-const YT_API_KEY = "YOUR_YOUTUBE_DATA_API_KEY"; // <<-- REPLACE WITH YOUR KEY
+const YT_API_KEY = "AIzaSyCEcbJWtOk4AAc6Cj787dE30WVmXGBze3M"; // <<-- REPLACE WITH YOUR KEY
 
 // ================= Socket.IO =================
 const socket = io("https://sync-flix.onrender.com");
@@ -249,7 +249,7 @@ async function searchYouTube(q) {
     return [];
   }
   const encoded = encodeURIComponent(q);
-  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&q=${encoded}&key=${AIzaSyCEcbJWtOk4AAc6Cj787dE30WVmXGBze3M}`;
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&q=${encoded}&key=${YT_API_KEY}`;
   const res = await fetch(url);
   const data = await res.json();
   if (!data || !data.items) return [];
