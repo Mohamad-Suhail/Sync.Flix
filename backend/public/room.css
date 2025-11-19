@@ -288,3 +288,15 @@ body.light .chat-panel {
 
 body.light .search-bar {
     background: rgba(255,255,255,)}
+    /* status ticks for messages */
+.msg { position: relative; padding-right: 46px; } /* leave space for status */
+.msg .msg-status { position: absolute; right: 10px; bottom: 6px; font-size: 12px; opacity: 0.85; }
+.msg .msg-status .tick { font-size: 12px; color: rgba(255,255,255,0.8); }
+.msg .msg-status .tick.double { margin-left:4px; }
+
+/* seen (blue) style */
+.msg .msg-status .tick.seen { color: #2b9cff; } /* blue when seen */
+
+/* adjust for light theme where text is dark */
+body.light .msg .msg-status .tick { color: rgba(0,0,0,0.6); }
+body.light .msg.me .msg-status .tick.seen { color: #0b66ff; }

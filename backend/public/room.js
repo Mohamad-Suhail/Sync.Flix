@@ -12,6 +12,10 @@ const service = getQueryParam("service") || "youtube";
 document.getElementById("user-name").textContent = username;
 document.getElementById("room-code-top").textContent = `Room: ${roomCode}`;
 
+// utility for unique message id
+function makeId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
 
 // =======================================
 //  SOCKET.IO CONNECTION
@@ -24,223 +28,288 @@ socket.emit("join-room", {
     username: username
 });
 
-
 // =======================================
-//  LEFT MENU OPEN/CLOSE
+//  ELEMENTS
 // =======================================
 const sideMenu = document.getElementById("side-menu");
 const menuToggle = document.getElementById("menu-toggle");
+const appearanceToggle = document.getElementById("appearance-toggle");
+const chatPanel = document.getElementById("chat-panel");
+const chatMessages = document.getElementById("chat-messages");
+const chatInput = document.getElementById("chat-text");
+const sendBtn = document.getElementById("send-btn");
+const emojiBtns = document.querySelectorAll(".emoji-btn");
+const searchInput = document.getElementById("search-input");
+const searchBtn = document.getElementById("search-btn");
+const participantsBtn = document.getElementById("participants-btn");
+const mediaContainer = document.getElementById("media-container");
 
+// keep map of displayed messages to avoid duplicates
+const displayed = new Map(); // messageId -> DOM element
+
+// =======================================
+//  Side menu open/close
+// =======================================
 menuToggle.addEventListener("click", (e) => {
     e.stopPropagation();
     sideMenu.classList.toggle("open");
 });
-
-// Close menu when clicking outside
 document.addEventListener("click", (e) => {
     if (!sideMenu.contains(e.target) && !menuToggle.contains(e.target)) {
         sideMenu.classList.remove("open");
     }
 });
-
 document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") sideMenu.classList.remove("open");
 });
 
-
-// =======================================
-//  APPEARANCE TOGGLE
-// =======================================
-const appearanceToggle = document.getElementById("appearance-toggle");
-
+// appearance toggle
 appearanceToggle.addEventListener("click", () => {
     appearanceToggle.classList.toggle("active");
     document.body.classList.toggle("light");
 });
 
-
 // =======================================
-//  MEDIA PLAYER LOGIC
+//  Load media (same as before)
 // =======================================
-const mediaContainer = document.getElementById("media-container");
-
 function loadSelectedService() {
-
-    mediaContainer.innerHTML = ""; // reset
-
-    // --- YouTube Player ---
+    mediaContainer.innerHTML = "";
     if (service === "youtube") {
-        mediaContainer.innerHTML = `
-            <iframe width="100%" height="350"
-                src="https://www.youtube.com/embed/?controls=1"
-                frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
-                allowfullscreen>
-            </iframe>`;
-    }
-
-    // --- YouTube Music (playlist trick) ---
-    else if (service === "music") {
-        mediaContainer.innerHTML = `
-            <iframe width="100%" height="350"
-                src="https://www.youtube.com/embed?list=RDCLAK5uy_kwfmMFDK7GdO81r0ZmIhgRNk_CXqQz0HI"
-                frameborder="0" allowfullscreen>
-            </iframe>`;
-    }
-
-    // --- Local file playback ---
-    else if (service === "local") {
-        mediaContainer.innerHTML = `
-            <input id="fileInput" type="file" accept="video/*,audio/*">
-            <video id="localVideo" width="100%" height="350" controls></video>
-        `;
-
+        mediaContainer.innerHTML = `<iframe width="100%" height="350"
+            src="https://www.youtube.com/embed/?controls=1"
+            frameborder="0" allowfullscreen></iframe>`;
+    } else if (service === "music") {
+        mediaContainer.innerHTML = `<iframe width="100%" height="350"
+            src="https://www.youtube.com/embed?list=RDCLAK5uy_kwfmMFDK7GdO81r0ZmIhgRNk_CXqQz0HI"
+            frameborder="0" allowfullscreen></iframe>`;
+    } else if (service === "local") {
+        mediaContainer.innerHTML = `<input id="fileInput" type="file" accept="video/*,audio/*">
+            <video id="localVideo" width="100%" height="350" controls></video>`;
         const fileInput = document.getElementById("fileInput");
         const localVideo = document.getElementById("localVideo");
-
         fileInput.onchange = () => {
-            const file = fileInput.files[0];
-            if (file) localVideo.src = URL.createObjectURL(file);
+            const f = fileInput.files[0];
+            if (f) localVideo.src = URL.createObjectURL(f);
         };
-    }
-
-    else {
-        mediaContainer.innerHTML = "<p>Unsupported Service</p>";
+    } else {
+        mediaContainer.innerHTML = `<p>Unsupported service</p>`;
     }
 }
-
 loadSelectedService();
 
-
 // =======================================
-//  MEDIA CONTROLS
+//  Message rendering helpers
 // =======================================
-document.getElementById("play").onclick = () => {
-    document.querySelector("video")?.play();
-};
+function fmtTime(ts) {
+    const d = new Date(ts);
+    let hh = d.getHours();
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    const ampm = hh >= 12 ? "PM" : "AM";
+    hh = ((hh + 11) % 12) + 1;
+    return `${hh}:${mm} ${ampm}`;
+}
 
-document.getElementById("pause").onclick = () => {
-    document.querySelector("video")?.pause();
-};
-
-document.getElementById("next").onclick = () => {
-    alert("Next feature coming soon.");
-};
-
-document.getElementById("prev").onclick = () => {
-    alert("Previous feature coming soon.");
-};
-
-
-// =======================================
-//  REAL-TIME CHAT SYSTEM (Socket.IO)
-// =======================================
-const chatMessages = document.getElementById("chat-messages");
-const chatInput = document.getElementById("chat-text");
-const sendBtn = document.getElementById("send-btn");
-
-// Render message
-function addMessage(user, text, mine = false) {
-    const div = document.createElement("div");
-    div.className = "msg" + (mine ? " me" : "");
+function createMessageElement(msgObj, mine = false) {
+    // msgObj: { id, username, text, time, deliveredBy, seenBy }
+    const wrapper = document.createElement("div");
+    wrapper.className = "msg" + (mine ? " me" : "");
+    wrapper.dataset.messageId = msgObj.id;
 
     if (!mine) {
         const meta = document.createElement("div");
         meta.className = "meta";
-        meta.textContent = user;
-        div.appendChild(meta);
+        meta.textContent = `${msgObj.username} • ${fmtTime(msgObj.time)}`;
+        wrapper.appendChild(meta);
+    } else {
+        // for own messages we show time and status
+        const meta = document.createElement("div");
+        meta.className = "meta me-meta";
+        meta.textContent = `${fmtTime(msgObj.time)}`;
+        wrapper.appendChild(meta);
     }
 
-    const msg = document.createElement("div");
-    msg.textContent = text;
-    div.appendChild(msg);
+    const text = document.createElement("div");
+    text.className = "text";
+    text.textContent = msgObj.text;
+    wrapper.appendChild(text);
 
-    chatMessages.appendChild(div);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    // status container for send/deliver/seen icons (only for own messages)
+    if (mine) {
+        const status = document.createElement("div");
+        status.className = "msg-status";
+        status.innerHTML = `<span class="tick single" title="Sent">✓</span>`;
+        wrapper.appendChild(status);
+    }
+
+    return wrapper;
 }
 
-// SEND message (emit to server)
+function showMessage(msgObj) {
+    if (displayed.has(msgObj.id)) return; // avoid duplicates
+    const mine = msgObj.username === username;
+    const el = createMessageElement(msgObj, mine);
+    chatMessages.appendChild(el);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    displayed.set(msgObj.id, el);
+}
+
+// =======================================
+//  Client -> Server: Send message
+// =======================================
 sendBtn.addEventListener("click", () => {
     const text = chatInput.value.trim();
     if (!text) return;
 
-    socket.emit("chat-message", {
+    const messageId = makeId();
+    const payload = {
+        id: messageId,
         room: roomCode,
+        username,
+        message: text,
+        time: Date.now()
+    };
+
+    // Optimistically render message locally (marked as sent)
+    showMessage({
+        id: payload.id,
         username: username,
-        message: text
+        text: payload.message,
+        time: payload.time,
+        deliveredBy: [],
+        seenBy: []
     });
+
+    // Emit to server
+    socket.emit("chat-message", payload);
 
     chatInput.value = "";
 });
 
-chatInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") sendBtn.click();
-});
-
-// RECEIVE message
-socket.on("chat-message", (data) => {
-    addMessage(data.username, data.message, data.username === username);
-});
-
-
 // =======================================
-//  REAL-TIME EMOJI SYNC (Socket.IO)
+//  When server sends initial history
 // =======================================
-const emojiButtons = document.querySelectorAll(".emoji-btn");
-const chatPanel = document.getElementById("chat-panel");
-
-// Send emoji
-emojiButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-        const emoji = btn.innerText;
-
-        socket.emit("emoji", {
-            room: roomCode,
-            username: username,
-            emoji: emoji
-        });
+socket.on("message-history", (messages) => {
+    if (!Array.isArray(messages)) return;
+    messages.forEach(msg => {
+        showMessage(msg);
+        // Immediately acknowledge receipt to server for delivery tracking
+        socket.emit("message-received", { room: roomCode, messageId: msg.id });
     });
 });
 
-// Receive emoji + float animation
+// =======================================
+//  New message arrival from server
+//  -> show and send 'message-received' ack
+// =======================================
+socket.on("new-message", (msgObj) => {
+    // show message if not present
+    showMessage(msgObj);
+
+    // send delivered ack for this socket
+    socket.emit("message-received", { room: roomCode, messageId: msgObj.id });
+});
+
+// =======================================
+//  Message delivered to all: server notifies
+//  -> update status icons for that messageId
+// =======================================
+socket.on("message-delivered", ({ messageId }) => {
+    const el = displayed.get(messageId);
+    if (!el) return;
+    // update status element inside el
+    const status = el.querySelector(".msg-status");
+    if (status) {
+        status.innerHTML = `<span class="tick double" title="Delivered">✓✓</span>`;
+    }
+});
+
+// =======================================
+//  Message seen update (server provides seenBy socket ids)
+//  -> if current user is the sender, show seen tick; otherwise show seen for message when user sees
+// =======================================
+socket.on("message-seen", ({ messageId, seenBy }) => {
+    const el = displayed.get(messageId);
+    if (!el) return;
+
+    // if I'm the sender and someone saw it, show seen style
+    if (el.classList.contains("me")) {
+        const status = el.querySelector(".msg-status");
+        if (status) {
+            // show double blue tick
+            status.innerHTML = `<span class="tick double seen" title="Seen">✓✓</span>`;
+        }
+    }
+});
+
+// =======================================
+//  When a user joins/leaves show notification
+// =======================================
+socket.on("user-joined", ({ username: u }) => {
+    const notice = { id: "sys-" + Date.now() + Math.random().toString(36).slice(2,6), username: "System", text: `${u} joined`, time: Date.now() };
+    showMessage(notice);
+});
+socket.on("user-left", ({ username: u }) => {
+    const notice = { id: "sys-" + Date.now() + Math.random().toString(36).slice(2,6), username: "System", text: `${u} left`, time: Date.now() };
+    showMessage(notice);
+});
+
+// =======================================
+//  When client focuses / opens chat, mark all visible messages as seen
+//  We'll detect when chat panel is in view or input is focused
+// =======================================
+function markVisibleMessagesAsSeen() {
+    // mark latest messages as seen by this socket
+    displayed.forEach((el, messageId) => {
+        // skip if message already from me
+        const isMine = el.classList.contains("me");
+        // find message element and send seen only for messages not already seen by this socket
+        // We'll tell server we saw it — server will store socket.id in seenBy and broadcast update
+        socket.emit("message-seen", { room: roomCode, messageId });
+    });
+}
+
+// call when chat input is focused (user viewing)
+chatInput.addEventListener("focus", () => {
+    markVisibleMessagesAsSeen();
+});
+// also call when user clicks anywhere on chat messages
+chatMessages.addEventListener("click", () => {
+    markVisibleMessagesAsSeen();
+});
+
+// =======================================
+//  Emoji send + receive (already synced on server)
+// =======================================
+emojiBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+        const emoji = btn.innerText;
+        socket.emit("emoji", { room: roomCode, username, emoji });
+        // optionally render immediately (server will broadcast too)
+        // showMessage({ id: makeId(), username, text: emoji, time: Date.now() }, true);
+    });
+});
+
 socket.on("emoji", (data) => {
+    // show as chat message and floating animation
+    const msgIdLocal = makeId();
+    showMessage({ id: msgIdLocal, username: data.username, text: data.emoji, time: Date.now() });
 
-    // Add in chat
-    addMessage(data.username, data.emoji, data.username === username);
-
-    // Floating animation
+    // float
     const float = document.createElement("div");
     float.className = "floating-emoji";
     float.textContent = data.emoji;
-
     const rect = chatPanel.getBoundingClientRect();
-    float.style.left = rect.left + rect.width / 2 + "px";
-    float.style.top = rect.top + 20 + "px";
-
+    float.style.left = `${rect.left + rect.width/2}px`;
+    float.style.top = `${rect.top + 20}px`;
     document.body.appendChild(float);
-
     setTimeout(() => float.remove(), 1500);
 });
 
-
 // =======================================
-//  USER JOIN / LEAVE NOTIFICATIONS
-// =======================================
-socket.on("user-joined", (data) => {
-    addMessage("System", `${data.username} joined the room`);
-});
-
-socket.on("user-left", (data) => {
-    addMessage("System", `${data.username} left the room`);
-});
-
-
-// =======================================
-//  SEARCH BAR
-// =======================================
-document.getElementById("search-btn").addEventListener("click", () => {
-    const q = document.getElementById("search-input").value.trim();
+//  Search button (opens results)
+//// =======================================
+searchBtn.addEventListener("click", () => {
+    const q = (searchInput.value || "").trim();
     if (!q) return;
-
     window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`, "_blank");
 });
