@@ -49,4 +49,12 @@ toggle.addEventListener("change", () => {
     else document.body.classList.remove("dark");
 });
 
+// APPEARANCE TOGGLE (iOS Style)
+const toggleSwitch = document.getElementById("appearance-toggle");
+
+toggleSwitch.addEventListener("click", () => {
+    toggleSwitch.classList.toggle("active");
+    document.body.classList.toggle("light");
+});
+
 // Chat + emojis + search can be added later

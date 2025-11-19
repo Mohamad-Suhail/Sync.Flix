@@ -12,37 +12,25 @@
 
     <!-- Side Menu -->
     <div id="side-menu" class="side-menu">
-        
         <div class="menu-header">
-            <div class="user-icon">
-                <span>👤</span>
-            </div>
             <h2 id="user-name"></h2>
+
+            <!-- Appearance Switch -->
+            <label class="appearance-title">Appearance</label>
+            <div id="appearance-toggle" class="toggle-switch">
+                <div class="thumb"></div>
+            </div>
         </div>
 
-        <div class="menu-section">
-            <h3>Appearance</h3>
-            
-            <label class="switch">
-                <input type="checkbox" id="theme-toggle">
-                <span class="slider"></span>
-            </label>
-        </div>
-
-        <div class="menu-footer">
-            SyncFlix v1.0
-        </div>
+        <div class="menu-footer">SyncFlix v1.0</div>
     </div>
 
     <!-- Top Bar -->
     <div class="top-bar">
-        <button id="menu-toggle" class="menu-btn">☰</button>
-
-        <h1 class="logo">SyncFlix</h1>
-
-        <span id="room-code-top" class="room-code"></span>
-
-        <button id="participants-btn" class="participants-btn">👥</button>
+        <button id="menu-toggle">&#9776;</button>
+        <h1>SyncFlix</h1>
+        <span id="room-code-top"></span>
+        <button id="participants-btn">Participants</button>
     </div>
 
     <!-- Main Content -->
@@ -50,15 +38,13 @@
 
         <!-- Media Panel -->
         <div class="media-panel">
-            <div id="media-container" class="media-container">
-                <p>Select a video/audio to play</p>
-            </div>
+            <div id="media-container"></div>
 
             <div class="media-controls">
-                <button class="ctrl-btn" id="prev">⏮</button>
-                <button class="ctrl-btn" id="play">▶️</button>
-                <button class="ctrl-btn" id="pause">⏸</button>
-                <button class="ctrl-btn" id="next">⏭</button>
+                <button class="media-btn" id="prev">⏮</button>
+                <button class="media-btn" id="play">▶</button>
+                <button class="media-btn" id="pause">⏸</button>
+                <button class="media-btn" id="next">⏭</button>
             </div>
         </div>
 
@@ -81,10 +67,9 @@
 
     </div>
 
-    <!-- Search Bar -->
     <div class="search-bar">
-        <input id="search-input" placeholder="Search YouTube...">
-        <button id="search-btn">🔍</button>
+        <input id="search-input" placeholder="Search YouTube">
+        <button id="search-btn">Search</button>
     </div>
 
 </div>
