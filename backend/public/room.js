@@ -1,10 +1,7 @@
-// =======================================
-//  URL PARAMS
-// =======================================
-function getQueryParam(key) {
-    return new URLSearchParams(window.location.search).get(key);
-}
+// room.js — FULL client: YouTube search + IFrame API + full timestamp sync + chat & emoji (socket.io)
 
+// ================= URL params =================
+function getQueryParam(key) { return new URLSearchParams(window.location.search).get(key); }
 const username = getQueryParam("name") || "Guest";
 const roomCode = getQueryParam("room") || "XXXXXX";
 const service = getQueryParam("service") || "youtube";
@@ -12,304 +9,340 @@ const service = getQueryParam("service") || "youtube";
 document.getElementById("user-name").textContent = username;
 document.getElementById("room-code-top").textContent = `Room: ${roomCode}`;
 
-// utility for unique message id
-function makeId() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-}
+// ================= YouTube Data API KEY =================
+// Get an API key: https://console.developers.google.com/
+// Enable "YouTube Data API v3" for your project
+const YT_API_KEY = "YOUR_YOUTUBE_DATA_API_KEY"; // <<-- REPLACE WITH YOUR KEY
 
-// =======================================
-//  SOCKET.IO CONNECTION
-// =======================================
+// ================= Socket.IO =================
 const socket = io("https://sync-flix.onrender.com");
 
-// Join room with username
-socket.emit("join-room", {
-    room: roomCode,
-    username: username
-});
+// join room
+socket.emit("join-room", { room: roomCode, username });
 
-// =======================================
-//  ELEMENTS
-// =======================================
-const sideMenu = document.getElementById("side-menu");
-const menuToggle = document.getElementById("menu-toggle");
-const appearanceToggle = document.getElementById("appearance-toggle");
-const chatPanel = document.getElementById("chat-panel");
+// ================= Elements =================
+const mediaContainer = document.getElementById("media-container");
+const playBtn = document.getElementById("play");
+const pauseBtn = document.getElementById("pause");
+const prevBtn = document.getElementById("prev");
+const nextBtn = document.getElementById("next");
+const searchInput = document.getElementById("search-input");
+const searchBtn = document.getElementById("search-btn");
+const searchResults = document.getElementById("search-results");
+
+// chat & emoji elements (simplified)
 const chatMessages = document.getElementById("chat-messages");
 const chatInput = document.getElementById("chat-text");
 const sendBtn = document.getElementById("send-btn");
 const emojiBtns = document.querySelectorAll(".emoji-btn");
-const searchInput = document.getElementById("search-input");
-const searchBtn = document.getElementById("search-btn");
-const participantsBtn = document.getElementById("participants-btn");
-const mediaContainer = document.getElementById("media-container");
+const chatPanel = document.getElementById("chat-panel");
 
-// keep map of displayed messages to avoid duplicates
-const displayed = new Map(); // messageId -> DOM element
+// ================ YouTube Player via IFrame API =================
+// We'll create global player variable YT expects
+let player = null;
+let playerReady = false;
+let isSeeking = false; // to prevent responding to own seeks
+let lastState = -1;
 
-// =======================================
-//  Side menu open/close
-// =======================================
-menuToggle.addEventListener("click", (e) => {
-    e.stopPropagation();
-    sideMenu.classList.toggle("open");
-});
-document.addEventListener("click", (e) => {
-    if (!sideMenu.contains(e.target) && !menuToggle.contains(e.target)) {
-        sideMenu.classList.remove("open");
-    }
-});
-document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") sideMenu.classList.remove("open");
-});
+// create a small helper to initialize a blank player container
+function createPlayerContainer() {
+  mediaContainer.innerHTML = `<div id="yt-player"></div>`;
+}
 
-// appearance toggle
-appearanceToggle.addEventListener("click", () => {
-    appearanceToggle.classList.toggle("active");
-    document.body.classList.toggle("light");
-});
+// function that YouTube API calls when ready
+function onYouTubeIframeAPIReady() {
+  // When first loading, no videoId; we'll create player with empty videoId
+  if (!player) {
+    player = new YT.Player("yt-player", {
+      height: "350",
+      width: "100%",
+      videoId: "", // blank initially
+      playerVars: { controls: 1, modestbranding: 1 },
+      events: {
+        'onReady': onPlayerReady,
+        'onStateChange': onPlayerStateChange
+      }
+    });
+  }
+}
 
-// =======================================
-//  Load media (same as before)
-// =======================================
-function loadSelectedService() {
-    mediaContainer.innerHTML = "";
-    if (service === "youtube") {
-        mediaContainer.innerHTML = `<iframe width="100%" height="350"
-            src="https://www.youtube.com/embed/?controls=1"
-            frameborder="0" allowfullscreen></iframe>`;
-    } else if (service === "music") {
-        mediaContainer.innerHTML = `<iframe width="100%" height="350"
-            src="https://www.youtube.com/embed?list=RDCLAK5uy_kwfmMFDK7GdO81r0ZmIhgRNk_CXqQz0HI"
-            frameborder="0" allowfullscreen></iframe>`;
-    } else if (service === "local") {
-        mediaContainer.innerHTML = `<input id="fileInput" type="file" accept="video/*,audio/*">
-            <video id="localVideo" width="100%" height="350" controls></video>`;
-        const fileInput = document.getElementById("fileInput");
-        const localVideo = document.getElementById("localVideo");
-        fileInput.onchange = () => {
-            const f = fileInput.files[0];
-            if (f) localVideo.src = URL.createObjectURL(f);
-        };
+// attach to global (YouTube API requires this name)
+window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+
+function onPlayerReady(evt) {
+  playerReady = true;
+}
+
+function onPlayerStateChange(event) {
+  const state = event.data;
+  // states: -1 unstarted, 0 ended, 1 playing, 2 paused, 3 buffering
+  // Avoid loops: when we received an incoming remote command and adjusted player, we should not re-emit identical action.
+  // We'll emit events using explicit user UI actions instead of every state change.
+  lastState = state;
+}
+
+// ================ Helpers: time & id =================
+function makeId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function nowMs() { return Date.now(); }
+
+// Sync: compute target time for receivers (accounts for latency)
+function computeTargetTime(sentCurrentTime, sentClientTime) {
+  const extra = (Date.now() - sentClientTime) / 1000; // seconds elapsed since sender sent
+  return sentCurrentTime + extra;
+}
+
+// ================= Load video (local user clicked a result) =================
+function userLoadVideo(videoId) {
+  const currentTime = 0;
+  const clientTime = nowMs();
+
+  // Update local player immediately
+  if (!player) {
+    createPlayerContainer();
+    // ensure YouTube API initializes if not yet
+  }
+  if (playerReady && player) {
+    player.loadVideoById(videoId, 0);
+  } else {
+    // create or reset player to load once ready
+    setTimeout(() => {
+      if (playerReady && player) player.loadVideoById(videoId, 0);
+    }, 400);
+  }
+
+  // emit to server to inform everyone (server stores state)
+  socket.emit("load-video", { room: roomCode, videoId, currentTime, clientTime });
+}
+
+// ================= Receive load-video from server =================
+socket.on("load-video", (data) => {
+  // data: { videoId, currentTime, clientTime }
+  createPlayerContainer();
+  // If player exists and ready, load; else wait a bit
+  const targetTime = computeTargetTime(data.currentTime || 0, data.clientTime || nowMs());
+  const vid = data.videoId;
+
+  function doLoad() {
+    if (playerReady && player) {
+      // load and seek to targetTime (small compensation)
+      try {
+        player.loadVideoById(vid, targetTime);
+      } catch (e) {
+        player.cueVideoById(vid, targetTime);
+      }
     } else {
-        mediaContainer.innerHTML = `<p>Unsupported service</p>`;
+      setTimeout(doLoad, 200);
     }
-}
-loadSelectedService();
+  }
+  doLoad();
+});
 
-// =======================================
-//  Message rendering helpers
-// =======================================
-function fmtTime(ts) {
-    const d = new Date(ts);
-    let hh = d.getHours();
-    const mm = String(d.getMinutes()).padStart(2, "0");
-    const ampm = hh >= 12 ? "PM" : "AM";
-    hh = ((hh + 11) % 12) + 1;
-    return `${hh}:${mm} ${ampm}`;
-}
+// ================= Play / Pause / Seek (UI triggers) =================
+// local user pressed Play
+playBtn.addEventListener("click", () => {
+  if (!player || !playerReady) return;
+  const currentTime = player.getCurrentTime();
+  const clientTime = nowMs();
+  player.playVideo();
+  socket.emit("video-play", { room: roomCode, currentTime, clientTime });
+});
 
-function createMessageElement(msgObj, mine = false) {
-    // msgObj: { id, username, text, time, deliveredBy, seenBy }
-    const wrapper = document.createElement("div");
-    wrapper.className = "msg" + (mine ? " me" : "");
-    wrapper.dataset.messageId = msgObj.id;
+// local user pressed Pause
+pauseBtn.addEventListener("click", () => {
+  if (!player || !playerReady) return;
+  const currentTime = player.getCurrentTime();
+  const clientTime = nowMs();
+  player.pauseVideo();
+  socket.emit("video-pause", { room: roomCode, currentTime, clientTime });
+});
 
-    if (!mine) {
-        const meta = document.createElement("div");
-        meta.className = "meta";
-        meta.textContent = `${msgObj.username} • ${fmtTime(msgObj.time)}`;
-        wrapper.appendChild(meta);
-    } else {
-        // for own messages we show time and status
-        const meta = document.createElement("div");
-        meta.className = "meta me-meta";
-        meta.textContent = `${fmtTime(msgObj.time)}`;
-        wrapper.appendChild(meta);
+// Seek controls: we provide prev/next to navigate search results or basic +/-10s
+prevBtn.addEventListener("click", () => {
+  if (!player || !playerReady) return;
+  // Seek backward 10s
+  const t = Math.max(0, player.getCurrentTime() - 10);
+  player.seekTo(t, true);
+  socket.emit("video-seek", { room: roomCode, seekTime: t, clientTime: nowMs() });
+});
+
+nextBtn.addEventListener("click", () => {
+  if (!player || !playerReady) return;
+  // Seek forward 10s
+  const t = player.getCurrentTime() + 10;
+  player.seekTo(t, true);
+  socket.emit("video-seek", { room: roomCode, seekTime: t, clientTime: nowMs() });
+});
+
+// Also handle manual seeks (user drags progress). The Youtube IFrame API doesn't have direct "seek" events.
+// We'll poll every 500ms to detect large jumps while playing or paused.
+let lastPolledTime = 0;
+setInterval(() => {
+  if (!player || !playerReady) return;
+  const t = player.getCurrentTime();
+  if (Math.abs(t - lastPolledTime) > 1.2) { // user likely sought
+    lastPolledTime = t;
+    socket.emit("video-seek", { room: roomCode, seekTime: t, clientTime: nowMs() });
+  } else {
+    lastPolledTime = t;
+  }
+}, 700);
+
+// ================= Receive play/pause/seek events from server =================
+socket.on("video-play", (data) => {
+  // data: { currentTime, clientTime, origin }
+  if (!playerReady || !player) return;
+  // compute target time with latency compensation
+  const target = computeTargetTime(data.currentTime || 0, data.clientTime || nowMs());
+  // seek then play
+  try {
+    player.seekTo(target, true);
+  } catch (e) {}
+  player.playVideo();
+});
+
+socket.on("video-pause", (data) => {
+  if (!playerReady || !player) return;
+  const target = computeTargetTime(data.currentTime || 0, data.clientTime || nowMs());
+  try {
+    player.seekTo(target, true);
+  } catch (e) {}
+  player.pauseVideo();
+});
+
+socket.on("video-seek", (data) => {
+  if (!playerReady || !player) return;
+  const target = computeTargetTime(data.seekTime || 0, data.clientTime || nowMs());
+  try {
+    player.seekTo(target, true);
+  } catch (e) {}
+});
+
+// ================= On join, server may send current room-video-state =================
+socket.on("room-video-state", (v) => {
+  // v: { videoId, playing, currentTime, lastUpdate, lastClientTime }
+  if (!v) return;
+  createPlayerContainer();
+  function doSync() {
+    if (!playerReady || !player) { setTimeout(doSync, 200); return; }
+
+    const target = computeTargetTime(v.currentTime || 0, v.lastClientTime || nowMs());
+    if (v.videoId) {
+      try {
+        player.loadVideoById(v.videoId, target);
+      } catch (e) {
+        player.cueVideoById(v.videoId, target);
+      }
+      if (v.playing) {
+        player.playVideo();
+      } else {
+        player.pauseVideo();
+      }
     }
+  }
+  doSync();
+});
 
-    const text = document.createElement("div");
-    text.className = "text";
-    text.textContent = msgObj.text;
-    wrapper.appendChild(text);
-
-    // status container for send/deliver/seen icons (only for own messages)
-    if (mine) {
-        const status = document.createElement("div");
-        status.className = "msg-status";
-        status.innerHTML = `<span class="tick single" title="Sent">✓</span>`;
-        wrapper.appendChild(status);
-    }
-
-    return wrapper;
+// ================= YouTube SEARCH (Data API) =================
+async function searchYouTube(q) {
+  if (!YT_API_KEY || YT_API_KEY === "YOUR_YOUTUBE_DATA_API_KEY") {
+    alert("Please set your YouTube Data API key in room.js (YT_API_KEY). See instructions in the code.");
+    return [];
+  }
+  const encoded = encodeURIComponent(q);
+  const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=12&q=${encoded}&key=${AIzaSyCEcbJWtOk4AAc6Cj787dE30WVmXGBze3M}`;
+  const res = await fetch(url);
+  const data = await res.json();
+  if (!data || !data.items) return [];
+  // map results
+  return data.items.map(item => ({
+    videoId: item.id.videoId,
+    title: item.snippet.title,
+    thumb: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url
+  }));
 }
 
-function showMessage(msgObj) {
-    if (displayed.has(msgObj.id)) return; // avoid duplicates
-    const mine = msgObj.username === username;
-    const el = createMessageElement(msgObj, mine);
-    chatMessages.appendChild(el);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-    displayed.set(msgObj.id, el);
+function renderSearchResults(results) {
+  searchResults.innerHTML = "";
+  if (!results.length) {
+    searchResults.innerHTML = `<p style="opacity:.6;padding:8px">No results</p>`;
+    return;
+  }
+  const grid = document.createElement("div");
+  grid.className = "results-grid";
+  results.forEach(r => {
+    const card = document.createElement("div");
+    card.className = "result-card";
+    card.innerHTML = `
+      <img src="${r.thumb}" alt="${r.title}" />
+      <div class="rmeta">
+        <div class="rtitle">${r.title}</div>
+        <button class="rplay" data-vid="${r.videoId}">Play</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  searchResults.appendChild(grid);
+
+  // attach click handlers
+  document.querySelectorAll(".rplay").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      const vid = e.currentTarget.dataset.vid;
+      userLoadVideo(vid);
+    });
+  });
 }
 
-// =======================================
-//  Client -> Server: Send message
-// =======================================
+// search button
+searchBtn.addEventListener("click", async () => {
+  const q = (searchInput.value || "").trim();
+  if (!q) return;
+  searchResults.innerHTML = `<p style="opacity:.6;padding:8px">Searching...</p>`;
+  const results = await searchYouTube(q);
+  renderSearchResults(results);
+});
+
+// Press Enter to search
+searchInput.addEventListener("keypress", (e) => {
+  if (e.key === "Enter") searchBtn.click();
+});
+
+// ================= CHAT & EMOJI minimal logic (re-use earlier) =================
+function addMessage(user, text, mine = false) {
+  const div = document.createElement("div");
+  div.className = "msg" + (mine ? " me" : "");
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  meta.textContent = `${user} • ${new Date().toLocaleTimeString()}`;
+  const txt = document.createElement("div");
+  txt.textContent = text;
+  div.appendChild(meta);
+  div.appendChild(txt);
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// send chat
 sendBtn.addEventListener("click", () => {
-    const text = chatInput.value.trim();
-    if (!text) return;
-
-    const messageId = makeId();
-    const payload = {
-        id: messageId,
-        room: roomCode,
-        username,
-        message: text,
-        time: Date.now()
-    };
-
-    // Optimistically render message locally (marked as sent)
-    showMessage({
-        id: payload.id,
-        username: username,
-        text: payload.message,
-        time: payload.time,
-        deliveredBy: [],
-        seenBy: []
-    });
-
-    // Emit to server
-    socket.emit("chat-message", payload);
-
-    chatInput.value = "";
+  const text = (chatInput.value || "").trim();
+  if (!text) return;
+  const id = makeId();
+  socket.emit("chat-message", { id, room: roomCode, username, message: text, time: Date.now() });
+  addMessage(username, text, true);
+  chatInput.value = "";
 });
+chatInput.addEventListener("keypress", (e) => { if (e.key === "Enter") sendBtn.click(); });
 
-// =======================================
-//  When server sends initial history
-// =======================================
-socket.on("message-history", (messages) => {
-    if (!Array.isArray(messages)) return;
-    messages.forEach(msg => {
-        showMessage(msg);
-        // Immediately acknowledge receipt to server for delivery tracking
-        socket.emit("message-received", { room: roomCode, messageId: msg.id });
-    });
-});
+socket.on("new-message", (m) => { addMessage(m.username, m.text, m.username === username); });
 
-// =======================================
-//  New message arrival from server
-//  -> show and send 'message-received' ack
-// =======================================
-socket.on("new-message", (msgObj) => {
-    // show message if not present
-    showMessage(msgObj);
+// emojis
+emojiBtns.forEach(b => b.addEventListener("click", () => {
+  const emoji = b.innerText;
+  socket.emit("emoji", { room: roomCode, username, emoji });
+}));
+socket.on("emoji", (d) => { addMessage(d.username, d.emoji, d.username === username); /* floating bubble optional */ });
 
-    // send delivered ack for this socket
-    socket.emit("message-received", { room: roomCode, messageId: msgObj.id });
-});
-
-// =======================================
-//  Message delivered to all: server notifies
-//  -> update status icons for that messageId
-// =======================================
-socket.on("message-delivered", ({ messageId }) => {
-    const el = displayed.get(messageId);
-    if (!el) return;
-    // update status element inside el
-    const status = el.querySelector(".msg-status");
-    if (status) {
-        status.innerHTML = `<span class="tick double" title="Delivered">✓✓</span>`;
-    }
-});
-
-// =======================================
-//  Message seen update (server provides seenBy socket ids)
-//  -> if current user is the sender, show seen tick; otherwise show seen for message when user sees
-// =======================================
-socket.on("message-seen", ({ messageId, seenBy }) => {
-    const el = displayed.get(messageId);
-    if (!el) return;
-
-    // if I'm the sender and someone saw it, show seen style
-    if (el.classList.contains("me")) {
-        const status = el.querySelector(".msg-status");
-        if (status) {
-            // show double blue tick
-            status.innerHTML = `<span class="tick double seen" title="Seen">✓✓</span>`;
-        }
-    }
-});
-
-// =======================================
-//  When a user joins/leaves show notification
-// =======================================
-socket.on("user-joined", ({ username: u }) => {
-    const notice = { id: "sys-" + Date.now() + Math.random().toString(36).slice(2,6), username: "System", text: `${u} joined`, time: Date.now() };
-    showMessage(notice);
-});
-socket.on("user-left", ({ username: u }) => {
-    const notice = { id: "sys-" + Date.now() + Math.random().toString(36).slice(2,6), username: "System", text: `${u} left`, time: Date.now() };
-    showMessage(notice);
-});
-
-// =======================================
-//  When client focuses / opens chat, mark all visible messages as seen
-//  We'll detect when chat panel is in view or input is focused
-// =======================================
-function markVisibleMessagesAsSeen() {
-    // mark latest messages as seen by this socket
-    displayed.forEach((el, messageId) => {
-        // skip if message already from me
-        const isMine = el.classList.contains("me");
-        // find message element and send seen only for messages not already seen by this socket
-        // We'll tell server we saw it — server will store socket.id in seenBy and broadcast update
-        socket.emit("message-seen", { room: roomCode, messageId });
-    });
+// ================= small bootstrap: create player container if service youtube || music
+if (service === "youtube" || service === "music") {
+  createPlayerContainer();
+  // if API already loaded, onYouTubeIframeAPIReady will be called automatically
 }
-
-// call when chat input is focused (user viewing)
-chatInput.addEventListener("focus", () => {
-    markVisibleMessagesAsSeen();
-});
-// also call when user clicks anywhere on chat messages
-chatMessages.addEventListener("click", () => {
-    markVisibleMessagesAsSeen();
-});
-
-// =======================================
-//  Emoji send + receive (already synced on server)
-// =======================================
-emojiBtns.forEach(btn => {
-    btn.addEventListener("click", () => {
-        const emoji = btn.innerText;
-        socket.emit("emoji", { room: roomCode, username, emoji });
-        // optionally render immediately (server will broadcast too)
-        // showMessage({ id: makeId(), username, text: emoji, time: Date.now() }, true);
-    });
-});
-
-socket.on("emoji", (data) => {
-    // show as chat message and floating animation
-    const msgIdLocal = makeId();
-    showMessage({ id: msgIdLocal, username: data.username, text: data.emoji, time: Date.now() });
-
-    // float
-    const float = document.createElement("div");
-    float.className = "floating-emoji";
-    float.textContent = data.emoji;
-    const rect = chatPanel.getBoundingClientRect();
-    float.style.left = `${rect.left + rect.width/2}px`;
-    float.style.top = `${rect.top + 20}px`;
-    document.body.appendChild(float);
-    setTimeout(() => float.remove(), 1500);
-});
-
-// =======================================
-//  Search button (opens results)
-//// =======================================
-searchBtn.addEventListener("click", () => {
-    const q = (searchInput.value || "").trim();
-    if (!q) return;
-    window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`, "_blank");
-});

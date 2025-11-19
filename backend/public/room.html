@@ -1,91 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>SyncFlix - Room</title>
 <link rel="stylesheet" href="room.css">
 
-<!-- Socket.IO -->
+<!-- Socket.IO client -->
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-
+<!-- YouTube IFrame API (loads asynchronously) -->
+<script src="https://www.youtube.com/iframe_api"></script>
 </head>
 <body>
 
 <div class="room-container">
 
-    <!-- SIDE MENU -->
-    <div id="side-menu" class="side-menu">
-        <div class="menu-top">
-            <div class="user-row">
-                <div class="user-avatar">SF</div>
-                <h2 id="user-name"></h2>
-            </div>
-
-            <div class="appearance-section">
-                <label class="appearance-label">Appearance</label>
-                <div id="appearance-toggle" class="toggle-switch">
-                    <div class="thumb"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="menu-bottom">
-            <div class="menu-version">SyncFlix v1.0</div>
-        </div>
+  <!-- Side menu (unchanged) -->
+  <aside id="side-menu" class="side-menu">
+    <div class="menu-top">
+      <div class="user-row">
+        <div class="user-avatar">SF</div>
+        <h2 id="user-name"></h2>
+      </div>
+      <div class="appearance-section">
+        <label class="appearance-label">Appearance</label>
+        <div id="appearance-toggle" class="toggle-switch"><div class="thumb"></div></div>
+      </div>
     </div>
+    <div class="menu-bottom"><div class="menu-version">SyncFlix v1.0</div></div>
+  </aside>
 
-    <!-- TOP BAR -->
-    <div class="top-bar">
-        <button id="menu-toggle" class="menu-btn">☰</button>
-        <h1 class="logo">SyncFlix</h1>
-        <div class="top-right">
-            <span id="room-code-top"></span>
-            <button id="participants-btn" class="icon-btn">👥</button>
-        </div>
+  <!-- Top bar -->
+  <header class="top-bar">
+    <button id="menu-toggle" class="menu-btn">☰</button>
+    <h1 class="logo">SyncFlix</h1>
+    <div class="top-right">
+      <span id="room-code-top"></span>
+      <button id="participants-btn" class="icon-btn">👥</button>
     </div>
+  </header>
 
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
+  <!-- Main -->
+  <main class="main-content">
+    <!-- Left media -->
+    <section class="media-panel">
+      <div id="media-container" class="media-container"><p class="placeholder">Select video/audio</p></div>
 
-        <!-- MEDIA PANEL -->
-        <div class="media-panel">
-            <div id="media-container" class="media-container">
-                <p class="placeholder">Select video/audio</p>
-            </div>
+      <div class="media-controls">
+        <button id="prev" class="ctrl-btn">⏮</button>
+        <button id="play" class="ctrl-btn primary">▶</button>
+        <button id="pause" class="ctrl-btn">⏸</button>
+        <button id="next" class="ctrl-btn">⏭</button>
+      </div>
 
-            <div class="media-controls">
-                <button id="prev" class="ctrl-btn">⏮</button>
-                <button id="play" class="ctrl-btn primary">▶</button>
-                <button id="pause" class="ctrl-btn">⏸</button>
-                <button id="next" class="ctrl-btn">⏭</button>
-            </div>
-        </div>
+      <!-- Search results area (below controls) -->
+      <div id="search-results" class="search-results"></div>
+    </section>
 
-        <!-- CHAT PANEL -->
-        <div class="chat-panel" id="chat-panel">
-            <div id="chat-messages" class="chat-messages"></div>
+    <!-- Chat -->
+    <aside class="chat-panel" id="chat-panel">
+      <div id="chat-messages" class="chat-messages"></div>
 
-            <div class="emoji-bar">
-                <button class="emoji-btn">❤️</button>
-                <button class="emoji-btn">😂</button>
-                <button class="emoji-btn">🔥</button>
-                <button class="emoji-btn">😢</button>
-            </div>
+      <div class="emoji-bar">
+        <button class="emoji-btn">❤️</button>
+        <button class="emoji-btn">😂</button>
+        <button class="emoji-btn">🔥</button>
+        <button class="emoji-btn">😢</button>
+      </div>
 
-            <div class="chat-input">
-                <input id="chat-text" type="text" placeholder="Type a message...">
-                <button id="send-btn" class="send-btn">➤</button>
-            </div>
-        </div>
+      <div class="chat-input">
+        <input id="chat-text" type="text" placeholder="Type a message...">
+        <button id="send-btn" class="send-btn">➤</button>
+      </div>
+    </aside>
+  </main>
 
-    </div>
-
-    <!-- SEARCH BAR -->
-    <div class="search-bar">
-        <input id="search-input" placeholder="Search YouTube...">
-        <button id="search-btn" class="search-btn">🔍</button>
-    </div>
+  <!-- Search Bar -->
+  <div class="search-bar">
+    <input id="search-input" placeholder="Search YouTube (e.g. 'bieber songs')">
+    <button id="search-btn" class="search-btn">🔍</button>
+  </div>
 
 </div>
 
