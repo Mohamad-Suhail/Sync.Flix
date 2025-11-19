@@ -75,20 +75,46 @@ app.post("/log", (req, res) => {
 io.on("connection", (socket) => {
     console.log("User connected:", socket.id);
 
-    socket.on("join-room", (room) => {
+    // User joins room
+    socket.on("join-room", ({ room, username }) => {
         socket.join(room);
-        console.log(`${socket.id} joined room ${room}`);
+        socket.username = username;
+        socket.room = room;
+
+        console.log(`${username} joined room ${room}`);
+
+        // Broadcast participant join
+        io.to(room).emit("user-joined", {
+            username,
+            id: socket.id
+        });
     });
 
-    socket.on("send-action", (data) => {
-        io.to(data.room).emit("receive-action", data);
-    });
-
+    // Real-time chat
     socket.on("chat-message", (data) => {
-        io.to(data.room).emit("chat-message", data);
+        io.to(data.room).emit("chat-message", {
+            username: data.username,
+            message: data.message,
+            time: Date.now()
+        });
     });
 
+    // Emoji reaction broadcast
+    socket.on("emoji", (data) => {
+        io.to(data.room).emit("emoji", {
+            username: data.username,
+            emoji: data.emoji
+        });
+    });
+
+    // Disconnect Handling
     socket.on("disconnect", () => {
+        if (socket.room && socket.username) {
+            io.to(socket.room).emit("user-left", {
+                username: socket.username,
+                id: socket.id
+            });
+        }
         console.log("User disconnected:", socket.id);
     });
 });

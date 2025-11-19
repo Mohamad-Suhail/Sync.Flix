@@ -1,95 +1,102 @@
-// === URL PARAMS ===
+// =======================================
+//  URL PARAMS
+// =======================================
 function getQueryParam(key) {
     return new URLSearchParams(window.location.search).get(key);
 }
 
-const username = getQueryParam('name') || 'Guest';
-const roomCode = getQueryParam('room') || 'XXXXXX';
-const service = getQueryParam('service') || 'youtube';
+const username = getQueryParam("name") || "Guest";
+const roomCode = getQueryParam("room") || "XXXXXX";
+const service = getQueryParam("service") || "youtube";
 
-document.getElementById('user-name').textContent = username;
-document.getElementById('room-code-top').textContent = `Room: ${roomCode}`;
+document.getElementById("user-name").textContent = username;
+document.getElementById("room-code-top").textContent = `Room: ${roomCode}`;
 
-// === ELEMENTS ===
-const sideMenu = document.getElementById('side-menu');
-const menuToggle = document.getElementById('menu-toggle');
-const appearanceToggle = document.getElementById('appearance-toggle');
-const chatPanel = document.getElementById('chat-panel');
-const chatMessages = document.getElementById('chat-messages');
-const chatInput = document.getElementById('chat-text');
-const sendBtn = document.getElementById('send-btn');
-const emojiBtns = document.querySelectorAll('.emoji-btn');
-const searchBarInput = document.getElementById('search-input');
-const searchBtn = document.getElementById('search-btn');
-const participantsBtn = document.getElementById('participants-btn');
 
-// ------------------------------------------------------------
-// SIDE MENU TOGGLE
-// ------------------------------------------------------------
-menuToggle.addEventListener('click', (e) => {
-    e.stopPropagation();
-    sideMenu.classList.toggle('open');
+// =======================================
+//  SOCKET.IO CONNECTION
+// =======================================
+const socket = io("https://sync-flix.onrender.com");
+
+// Join room with username
+socket.emit("join-room", {
+    room: roomCode,
+    username: username
 });
 
-/* Close left panel when clicking outside */
-document.addEventListener('click', (e) => {
-    const clickInside = sideMenu.contains(e.target) || menuToggle.contains(e.target);
-    if (!clickInside) {
-        sideMenu.classList.remove('open');
+
+// =======================================
+//  LEFT MENU OPEN/CLOSE
+// =======================================
+const sideMenu = document.getElementById("side-menu");
+const menuToggle = document.getElementById("menu-toggle");
+
+menuToggle.addEventListener("click", (e) => {
+    e.stopPropagation();
+    sideMenu.classList.toggle("open");
+});
+
+// Close menu when clicking outside
+document.addEventListener("click", (e) => {
+    if (!sideMenu.contains(e.target) && !menuToggle.contains(e.target)) {
+        sideMenu.classList.remove("open");
     }
 });
 
-/* Close panel with ESC key */
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') sideMenu.classList.remove('open');
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") sideMenu.classList.remove("open");
 });
 
-// ------------------------------------------------------------
-// APPEARANCE (DARK / LIGHT) TOGGLE
-// ------------------------------------------------------------
-appearanceToggle.addEventListener('click', () => {
-    appearanceToggle.classList.toggle('active');
-    document.body.classList.toggle('light');
+
+// =======================================
+//  APPEARANCE TOGGLE
+// =======================================
+const appearanceToggle = document.getElementById("appearance-toggle");
+
+appearanceToggle.addEventListener("click", () => {
+    appearanceToggle.classList.toggle("active");
+    document.body.classList.toggle("light");
 });
 
-// ------------------------------------------------------------
-// MEDIA PANEL (YOUTUBE / MUSIC / LOCAL)
-// ------------------------------------------------------------
-const mediaContainer = document.getElementById('media-container');
+
+// =======================================
+//  MEDIA PLAYER LOGIC
+// =======================================
+const mediaContainer = document.getElementById("media-container");
 
 function loadSelectedService() {
-    mediaContainer.innerHTML = ""; // Reset container
 
-    // ------ YOUTUBE ------
+    mediaContainer.innerHTML = ""; // reset
+
+    // --- YouTube Player ---
     if (service === "youtube") {
         mediaContainer.innerHTML = `
             <iframe width="100%" height="350"
                 src="https://www.youtube.com/embed/?controls=1"
                 frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope"
                 allowfullscreen>
             </iframe>`;
     }
 
-    // ------ YOUTUBE MUSIC (cannot embed normally, so using playlist) ------
+    // --- YouTube Music (playlist trick) ---
     else if (service === "music") {
         mediaContainer.innerHTML = `
             <iframe width="100%" height="350"
-                src="https://www.youtube.com/embed?list=RDCLAK5uy_kwfmMFDK7GdO81r0ZmIhgRNk_CXqQz0HI" 
-                frameborder="0"
-                allowfullscreen>
+                src="https://www.youtube.com/embed?list=RDCLAK5uy_kwfmMFDK7GdO81r0ZmIhgRNk_CXqQz0HI"
+                frameborder="0" allowfullscreen>
             </iframe>`;
     }
 
-    // ------ LOCAL FILE PLAYBACK ------
+    // --- Local file playback ---
     else if (service === "local") {
         mediaContainer.innerHTML = `
             <input id="fileInput" type="file" accept="video/*,audio/*">
             <video id="localVideo" width="100%" height="350" controls></video>
         `;
 
-        const fileInput = document.getElementById('fileInput');
-        const localVideo = document.getElementById('localVideo');
+        const fileInput = document.getElementById("fileInput");
+        const localVideo = document.getElementById("localVideo");
 
         fileInput.onchange = () => {
             const file = fileInput.files[0];
@@ -97,103 +104,143 @@ function loadSelectedService() {
         };
     }
 
-    // ------ UNSUPPORTED ------
     else {
-        mediaContainer.innerHTML = `<p style="opacity:0.6;">Unsupported Service</p>`;
+        mediaContainer.innerHTML = "<p>Unsupported Service</p>";
     }
 }
 
 loadSelectedService();
 
-// ------------------------------------------------------------
-// MEDIA CONTROLS
-// ------------------------------------------------------------
-document.getElementById('play').onclick = () => {
-    const v = document.querySelector('#media-container video');
-    v?.play();
+
+// =======================================
+//  MEDIA CONTROLS
+// =======================================
+document.getElementById("play").onclick = () => {
+    document.querySelector("video")?.play();
 };
 
-document.getElementById('pause').onclick = () => {
-    const v = document.querySelector('#media-container video');
-    v?.pause();
+document.getElementById("pause").onclick = () => {
+    document.querySelector("video")?.pause();
 };
 
-document.getElementById('next').onclick = () => {
-    alert("Next feature coming soon!");
+document.getElementById("next").onclick = () => {
+    alert("Next feature coming soon.");
 };
 
-document.getElementById('prev').onclick = () => {
-    alert("Previous feature coming soon!");
+document.getElementById("prev").onclick = () => {
+    alert("Previous feature coming soon.");
 };
 
-// ------------------------------------------------------------
-// CHAT SYSTEM (LOCAL FOR NOW — REALTIME COMING NEXT)
-// ------------------------------------------------------------
+
+// =======================================
+//  REAL-TIME CHAT SYSTEM (Socket.IO)
+// =======================================
+const chatMessages = document.getElementById("chat-messages");
+const chatInput = document.getElementById("chat-text");
+const sendBtn = document.getElementById("send-btn");
+
+// Render message
 function addMessage(user, text, mine = false) {
-    const wrap = document.createElement("div");
-    wrap.className = "msg" + (mine ? " me" : "");
+    const div = document.createElement("div");
+    div.className = "msg" + (mine ? " me" : "");
 
     if (!mine) {
         const meta = document.createElement("div");
         meta.className = "meta";
         meta.textContent = user;
-        wrap.appendChild(meta);
+        div.appendChild(meta);
     }
 
-    const txt = document.createElement("div");
-    txt.className = "text";
-    txt.textContent = text;
+    const msg = document.createElement("div");
+    msg.textContent = text;
+    div.appendChild(msg);
 
-    wrap.appendChild(txt);
-    chatMessages.appendChild(wrap);
-
+    chatMessages.appendChild(div);
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
+// SEND message (emit to server)
 sendBtn.addEventListener("click", () => {
     const text = chatInput.value.trim();
     if (!text) return;
 
-    addMessage(username, text, true);
+    socket.emit("chat-message", {
+        room: roomCode,
+        username: username,
+        message: text
+    });
+
     chatInput.value = "";
 });
 
-chatInput.addEventListener("keypress", (ev) => {
-    if (ev.key === "Enter") sendBtn.click();
+chatInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendBtn.click();
 });
 
-// ------------------------------------------------------------
-// EMOJIS — FLOATING ANIMATION
-// ------------------------------------------------------------
-emojiBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+// RECEIVE message
+socket.on("chat-message", (data) => {
+    addMessage(data.username, data.message, data.username === username);
+});
+
+
+// =======================================
+//  REAL-TIME EMOJI SYNC (Socket.IO)
+// =======================================
+const emojiButtons = document.querySelectorAll(".emoji-btn");
+const chatPanel = document.getElementById("chat-panel");
+
+// Send emoji
+emojiButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
         const emoji = btn.innerText;
-        addMessage(username, emoji, true);
 
-        const float = document.createElement("div");
-        float.className = "floating-emoji";
-        float.textContent = emoji;
-
-        const rect = chatPanel.getBoundingClientRect();
-        float.style.left = `${rect.left + rect.width / 2}px`;
-        float.style.top = `${rect.top + 40}px`;
-
-        document.body.appendChild(float);
-        setTimeout(() => float.remove(), 1500);
+        socket.emit("emoji", {
+            room: roomCode,
+            username: username,
+            emoji: emoji
+        });
     });
 });
 
-// ------------------------------------------------------------
-// SEARCH BAR — OPENS YOUTUBE RESULTS
-// ------------------------------------------------------------
-searchBtn.addEventListener('click', () => {
-    const q = searchBarInput.value.trim();
-    if (!q) return;
+// Receive emoji + float animation
+socket.on("emoji", (data) => {
 
-    window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`);
+    // Add in chat
+    addMessage(data.username, data.emoji, data.username === username);
+
+    // Floating animation
+    const float = document.createElement("div");
+    float.className = "floating-emoji";
+    float.textContent = data.emoji;
+
+    const rect = chatPanel.getBoundingClientRect();
+    float.style.left = rect.left + rect.width / 2 + "px";
+    float.style.top = rect.top + 20 + "px";
+
+    document.body.appendChild(float);
+
+    setTimeout(() => float.remove(), 1500);
 });
 
-// Participant popup (placeholder)
-participantsBtn.addEventListener('click', () => {
-    alert("Participants list coming soon!");
+
+// =======================================
+//  USER JOIN / LEAVE NOTIFICATIONS
+// =======================================
+socket.on("user-joined", (data) => {
+    addMessage("System", `${data.username} joined the room`);
+});
+
+socket.on("user-left", (data) => {
+    addMessage("System", `${data.username} left the room`);
+});
+
+
+// =======================================
+//  SEARCH BAR
+// =======================================
+document.getElementById("search-btn").addEventListener("click", () => {
+    const q = document.getElementById("search-input").value.trim();
+    if (!q) return;
+
+    window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`, "_blank");
 });
