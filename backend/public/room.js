@@ -1,112 +1,52 @@
-// =======================
-// GET URL PARAMS
-// =======================
+// URL PARAMS
 function getQueryParam(param) {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get(param);
+    return new URLSearchParams(window.location.search).get(param);
 }
 
 const username = getQueryParam("name") || "Guest";
-const roomCode = getQueryParam("room") || "XXXXXX";
+const roomCode = getQueryParam("room") || "XXXX";
 const service = getQueryParam("service") || "youtube";
 
 document.getElementById("user-name").textContent = username;
-document.getElementById("room-code-top").textContent = `Room: ${roomCode}`;
+document.getElementById("room-code-top").textContent = "Room: " + roomCode;
 
 // =======================
 // MEDIA LOADING
 // =======================
 const mediaContainer = document.getElementById("media-container");
-let youtubePlayer = null;
-let audioPlayer = null;
 
-// Load media based on service
-function loadSelectedService() {
-
+function loadMedia() {
     if (service === "youtube") {
-        mediaContainer.innerHTML = `
-            <iframe id="yt-player"
-                width="100%" height="350"
-                src="https://www.youtube.com/embed/?controls=1"
-                frameborder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;"
-                allowfullscreen>
-            </iframe>
-        `;
-
-        youtubePlayer = document.getElementById("yt-player");
-    }
-
-    else if (service === "youtube-music") {
-        mediaContainer.innerHTML = `
-            <iframe 
-                width="100%" height="350"
-                src="https://music.youtube.com/"
-                frameborder="0">
-            </iframe>
-        `;
-    }
-
-    else if (service === "vlc") {
-        mediaContainer.innerHTML = `
-            <input type="file" id="fileInput" accept="video/*,audio/*">
-            <video id="localVideo" width="100%" height="350" controls></video>
-        `;
-
-        const fileInput = document.getElementById("fileInput");
-        const localVideo = document.getElementById("localVideo");
-
-        fileInput.addEventListener("change", () => {
-            const file = fileInput.files[0];
-            if (file) {
-                localVideo.src = URL.createObjectURL(file);
-            }
-        });
+        mediaContainer.innerHTML =
+        `<iframe width="100%" height="360"
+            src="https://www.youtube.com/embed/"
+            frameborder="0" allowfullscreen></iframe>`;
     }
 }
-
-loadSelectedService();
-
-// =======================
-// CONTROL BUTTONS
-// =======================
-document.getElementById("play").addEventListener("click", () => {
-    if (service === "vlc") {
-        document.getElementById("localVideo")?.play();
-    }
-});
-
-document.getElementById("pause").addEventListener("click", () => {
-    if (service === "vlc") {
-        document.getElementById("localVideo")?.pause();
-    }
-});
-
+loadMedia();
 
 // =======================
-// SIDE MENU
+// MENU TOGGLE
 // =======================
-const sideMenu = document.getElementById("side-menu");
-document.getElementById("menu-toggle").addEventListener("click", () => {
-    sideMenu.classList.toggle("open");
-});
+const menu = document.getElementById("side-menu");
+document.getElementById("menu-toggle").onclick = () => {
+    menu.classList.toggle("open");
+};
 
 document.addEventListener("click", e => {
-    if (!sideMenu.contains(e.target) && !document.getElementById("menu-toggle").contains(e.target)) {
-        sideMenu.classList.remove("open");
+    if (!menu.contains(e.target) && !document.getElementById("menu-toggle").contains(e.target)) {
+        menu.classList.remove("open");
     }
 });
 
 // =======================
-// DARK MODE
+// DARK MODE SWITCH
 // =======================
-document.getElementById("light-btn").onclick = () =>
-    document.body.classList.remove("dark");
+const toggle = document.getElementById("theme-toggle");
 
-document.getElementById("dark-btn").onclick = () =>
-    document.body.classList.add("dark");
+toggle.addEventListener("change", () => {
+    if (toggle.checked) document.body.classList.add("dark");
+    else document.body.classList.remove("dark");
+});
 
-
-// =======================
-// CHAT SYSTEM (SKIPPED UNTIL BACKEND DECISION)
-// =======================
+// Chat + emojis + search can be added later
